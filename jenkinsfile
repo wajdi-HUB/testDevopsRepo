@@ -1,36 +1,35 @@
-node{
-        stage('Checkout') {
-            steps {
-                checkout scm
-            }
-        }
-stage("Clone the project") {
+node {
+  stage("Clone the project") {
     git branch: 'master', url: 'https://github.com/wajdi-HUB/testDevopsRepo.git'
   }
-        stage('Test') {
-            steps {
-                script {
-                    def mvnHome = tool 'Maven'
-                    def javaHome = tool 'Java'
-                    
-                    withEnv(["JAVA_HOME=${javaHome}", "PATH+MAVEN=${mvnHome}/bin"]) {
-                        sh "mvn clean test"
+
+
+    stage('MVN-CLEAN') {
+                steps {
+                    sh "mvn clean install"
+                }
+           }
+
+            stage('MVN-COMPILE') {
+                 steps {
+                    sh "mvn compile"
+                 }
+            }
+
+            stage('Mvn-Build') {
+                steps {
+                    script{
+                        sh "mvn -Dmaven.test.failure.ignore=true clean package"
                     }
                 }
             }
-        }
 
-        stage('Build') {
-            steps {
-                script {
-                    def mvnHome = tool 'Maven'
-                    def javaHome = tool 'Java'
-                    
-                    withEnv(["JAVA_HOME=${javaHome}", "PATH+MAVEN=${mvnHome}/bin"]) {
-                        sh "mvn clean package"
-                    }
-                }
-            }
-        }
-    }
+            stage('Mvn-Test') {
+               steps {
+                   script{
+                           sh "mvn test"
+                                                 }
 
+                                                   }
+                                                   }
+}
