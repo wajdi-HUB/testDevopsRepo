@@ -1,18 +1,73 @@
-node {
-  stage("Clone the project") {
-    git branch: 'master', url: 'https://github.com/wajdi-HUB/testDevopsRepo.git'
-  }
+pipeline {
 
-  stage("Compilation") {
-    sh "./mvnw clean install -DskipTests"
-  }
+    agent any
 
-  stage("Tests and Deployment") {
-    stage("Runing unit tests") {
-      sh "./mvnw test -Punit" 
+ 
+
+    tools {
+
+        // Install the Maven version configured as "M3" and add it to the path.
+
+        maven "M2_HOME"
+
     }
-    stage("Deployment") {
-      sh 'nohup ./mvnw spring-boot:run -Dserver.port=8001 &'
-    }
-  }
+stages {
+
+        stage('CheckOut') {
+
+            steps {
+
+                checkout scmGit(branches: [[name: '*/master']], extensions: [], userRemoteConfigs: [[url: 'https://github.com/wajdi-HUB/testDevopsRepo.git/']])            
+
+ 
+
+            }
+
+        }
+	stage('MAVEN VERSION') {
+
+            steps {
+
+                sh """mvn --version"""
+
+            }
+
+        }
+	 stage('MVN COMPILE') {
+
+            steps {
+
+                      echo "building ..."
+
+                      sh 'mvn clean compile'
+
+            }
+
+        }
+	stage('MVN CLEAN INSTALL') {
+
+            steps {
+
+                // Checkout your source code from version control system
+
+                // ...
+
+                echo 'Build..';
+
+                // Invoke Maven build
+
+                sh 'mvn clean install'
+
+                                    }
+
+                        }
+	stage('BUILD') {
+
+            steps {
+
+                sh "mvn clean package"
+
+            }
+
+        }
 }
