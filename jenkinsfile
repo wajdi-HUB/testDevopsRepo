@@ -1,11 +1,4 @@
-pipeline {
-    agent any
-  
-
-
-   
-
-    stages {
+node{
         stage('Checkout') {
             steps {
                 checkout scm
@@ -40,4 +33,4 @@ stage("Clone the project") {
             }
         }
     }
-}
+
