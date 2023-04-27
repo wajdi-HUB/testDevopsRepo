@@ -4,12 +4,33 @@ node {
   }
 
 
-  stage("Tests and Deployment") {
-    stage("Runing unit tests") {
-      sh "./mvnw test -Punit"
-    }
-    stage("Deployment") {
-      sh 'nohup ./mvnw spring-boot:run -Dserver.port=8083 &'
-    }
-  }
+    stage('MVN-CLEAN') {
+                steps {
+                    sh """mvn clean install"""
+                }
+           }
+
+            stage('MVN-COMPILE') {
+                 steps {
+                    sh """mvn compile"""
+                 }
+            }
+
+            stage('Mvn-Build') {
+                steps {
+                    script{
+                        sh """mvn -Dmaven.test.failure.ignore=true clean package"""
+                    }
+                }
+            }
+
+            stage('Mvn-Test') {
+               steps {
+                   script{
+
+                                                      sh """mvn test"""
+                                                               }
+
+                                                             }
+                                                   }
 }
