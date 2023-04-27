@@ -3,33 +3,16 @@ node {
     git branch: 'master', url: 'https://github.com/wajdi-HUB/testDevopsRepo.git'
   }
 
+  stage("Compilation") {
+    sh "./mvnw clean install -DskipTests"
+  }
 
-    stage('MVN-CLEAN') {
-                steps {
-                    sh "./mvnw clean install"
-                }
-           }
-
-            stage('MVN-COMPILE') {
-                 steps {
-                    sh "./mvnw compile"
-                 }
-            }
-
-            stage('Mvn-Build') {
-                steps {
-                    script{
-                        sh "./mvnw -Dmaven.test.failure.ignore=true clean package"
-                    }
-                }
-            }
-
-            stage('Mvn-Test') {
-               steps {
-                   script{
-                           sh "./mvnw test"
-                                                 }
-
-                                                   }
-                                                   }
+  stage("Tests and Deployment") {
+    stage("Runing unit tests") {
+      sh "./mvnw test -Punit"
+    }
+    stage("Deployment") {
+      sh 'nohup ./mvnw spring-boot:run -Dserver.port=8001 &'
+    }
+  }
 }
