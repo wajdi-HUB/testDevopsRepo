@@ -6,20 +6,20 @@ node {
 
     stage('MVN-CLEAN') {
                 steps {
-                    sh "./mvn clean install"
+                    sh "./mvnw clean install"
                 }
            }
 
             stage('MVN-COMPILE') {
                  steps {
-                    sh "./mvn compile"
+                    sh "./mvnw compile"
                  }
             }
 
             stage('Mvn-Build') {
                 steps {
                     script{
-                        sh "./mvn -Dmaven.test.failure.ignore=true clean package"
+                        sh "./mvnw -Dmaven.test.failure.ignore=true clean package"
                     }
                 }
             }
@@ -27,7 +27,7 @@ node {
             stage('Mvn-Test') {
                steps {
                    script{
-                           sh "./mvn test"
+                           sh "./mvnw test"
                                                  }
 
                                                    }
