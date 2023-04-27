@@ -4,7 +4,7 @@ node {
   }
 
   stage("Compilation") {
-    sh "chmod +x mvnw clean install -DskipTests"
+    sh "+x mvnw clean install -DskipTests"
   }
 
   stage("Tests and Deployment") {
