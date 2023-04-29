@@ -11,20 +11,32 @@ pipeline {
         maven "M2_HOME"
 
     }
-stages {
+
+    environment {
+
+                        NEXUS_URL = 'http://192.168.43.254:8081'
+
+                        NEXUS_REPOSITORY_ID = 'deploymentRepo'
+
+                        NEXUS_REPOSITORY_URL = 'http://192.168.43.254:8081/repository/maven-releases'
+
+            }
+
+    stages {
 
         stage('CheckOut') {
 
             steps {
 
-                checkout scmGit(branches: [[name: '*/master']], extensions: [], userRemoteConfigs: [[url: 'https://github.com/wajdi-HUB/testDevopsRepo.git/']])            
+                checkout scmGit(branches: [[name: '*/main']], extensions: [], userRemoteConfigs: [[url: 'https://github.com/BenghorbelNaoures/ProjectDevOpsValidation.git/']])            
 
  
 
             }
 
         }
-	stage('MAVEN VERSION') {
+
+        stage('MAVEN VERSION') {
 
             steps {
 
@@ -33,18 +45,20 @@ stages {
             }
 
         }
-	 stage('MVN COMPILE') {
+
+        stage('MVN COMPILE') {
 
             steps {
 
-                      echo "building ..."
+                                                echo "building ..."
 
-                      sh 'mvn clean compile'
+                                                sh 'mvn clean compile'
 
             }
 
         }
-	stage('MVN CLEAN INSTALL') {
+
+        stage('MVN CLEAN INSTALL') {
 
             steps {
 
@@ -61,7 +75,8 @@ stages {
                                     }
 
                         }
-	stage('BUILD') {
+
+        stage('BUILD') {
 
             steps {
 
@@ -70,5 +85,127 @@ stages {
             }
 
         }
-}
+
+ 
+
+                        stage("CLEAN VERIFY") {
+
+                                    steps {
+
+                                                echo 'testing ..';
+
+                sh 'mvn clean verify'
+
+                                    }
+
+                        }      
+
+                        stage("TEST JUNIT") {
+
+                                    steps {
+
+                                                echo 'testing ..';
+
+                sh 'mvn test'
+
+                                    }
+
+                        }      
+
+        stage('ANALYSE SONARQUBE') {
+
+            steps {
+
+                                                withSonarQubeEnv('SQ') {
+
+                                                            sh "mvn sonar:sonar -Dsonar.login=admin -D sonar.password=sonar"
+
+                                                }
+
+            }
+
+        }
+
+                        stage("Publish to Nexus Repository Manager") {
+
+                                    steps {
+
+                                                echo 'Deploy..';
+
+                                                sh "mvn deploy -DaltDeploymentRepository=${NEXUS_REPOSITORY_ID}::default::${NEXUS_REPOSITORY_URL} -s /usr/share/maven/conf/settings.xml"
+
+                                    }
+
+                        }
+
+        stage('build image') {
+
+            steps {
+
+                script{
+
+                    sh 'docker build -t wajdiihassyaoui/tpachatproject .'
+
+                }
+
+            }
+
+        }
+
+        stage('Push image to Hub'){
+
+            steps{
+
+                script{
+
+                    withCredentials([string(credentialsId: 'dockerhub-pwd', variable: 'dockerhubpwd')]) {
+
+                        sh 'docker login -u wajdiihassyaoui -p ${dockerhubpwd}'
+
+                        sh ' docker push wajdiihassyaoui/tpachatproject'            
+
+                    }
+
+                }
+
+            }
+
+        }
+
+        stage('Déploiement avec Docker Compose') {
+
+             steps {
+
+                sh'docker-compose up -d'
+
+            }
+
+        }
+
+        stage('Verification Status') {
+
+            steps {
+
+                sh' docker-compose ps '
+
+            }
+
+        }
+
+    }
+
+    post {
+
+        success {
+
+            jacoco()
+
+            junit '**/target/surefire-reports/TEST-*.xml'
+
+            archiveArtifacts 'target/*.jar'
+
+        }
+
+    }   
+
 }
