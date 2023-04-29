@@ -1,117 +1,136 @@
 pipeline {
-    agent any
 
+    agent any
     tools {
-        // Install the Maven version configured as "M2_HOME" and add it to the path.
-        maven "M2_HOME"
-    }
+    maven "M2_HOME"
+          }
 
     environment {
-        NEXUS_URL = 'http://192.168.43.254:8081'
-        NEXUS_REPOSITORY_ID = 'deploymentRepo'
-        NEXUS_REPOSITORY_URL = 'http://192.168.43.254:8081/repository/maven-releases'
-    }
+            NEXUS_VERSION = "nexus3"
+            NEXUS_PROTOCOL = "http"
+            NEXUS_URL = "192.168.43.254:8081"
+            NEXUS_REPOSITORY = "ProjetDevopsNexusRepo"
+            NEXUS_CREDENTIAL_ID = "NEXUS_CRED"
+                 }
 
     stages {
-        stage('Checkout') {
-            steps {
-                checkout([$class: 'GitSCM', branches: [[name: '*/master']], userRemoteConfigs: [[url: 'https://github.com/wajdi-HUB/testDevopsRepo.git']]])
-            }
-        }
 
-        stage('Maven Version') {
-            steps {
-                sh 'mvn --version'
-            }
-        }
-
-        stage('Maven Compile') {
-            steps {
-                sh 'mvn clean compile'
-            }
-        }
-
-        stage('Maven Clean Install') {
-            steps {
-                sh 'mvn clean install'
-            }
-        }
-
-        stage('Build') {
-            steps {
-                sh 'mvn clean package'
-            }
-        }
-
-        stage('Clean Verify') {
-            steps {
-                sh 'mvn clean verify'
-            }
-        }
-
-        stage('Test JUnit') {
-            steps {
-                sh 'mvn test'
-            }
-        }
-
-       stage('ANALYSE SONARQUBE') {
-
-            steps {
-
-                             withSonarQubeEnv('SQ') {
-
-                            sh "mvn sonar:sonar -Dsonar.login=admin -Dsonar.password=sonar"
-
-                                                }
-
-            }
-
-        }
-
-        stage('Publish to Nexus Repository Manager') {
-            steps {
-                sh "mvn deploy -DaltDeploymentRepository=${NEXUS_REPOSITORY_ID}::default::${NEXUS_REPOSITORY_URL} -s /usr/share/maven/conf/settings.xml"
-            }
-        }
-
-        stage('Build Image') {
-            steps {
-                script {
-                    sh 'docker build -t wajdiihassyaoui/tpachatproject .'
+            stage('Clone') {
+                steps {
+                    git branch: 'nada_branch',
+                    credentialsId: 'github',
+                    url: 'https://github.com/wajdi-HUB/testDevopsRepo.git'
                 }
             }
-        }
 
-        stage('Push Image to Hub') {
-            steps {
-                script {
-                    withCredentials([string(credentialsId: 'dockerhub-pwd', variable: 'dockerhubpwd')]) {
-                        sh 'docker login -u wajdiihassyaoui -p ${dockerhubpwd}'
-                        sh 'docker push wajdiihassyaoui/tpachatproject'
+           stage('MVN-CLEAN') {
+                steps {
+                    sh """mvn clean install"""
+                }
+           }
+
+            stage('MVN-COMPILE') {
+                 steps {
+                    sh """mvn compile"""
+                 }
+            }
+
+            stage('Mvn-Build') {
+                steps {
+                    script{
+                        sh """mvn -Dmaven.test.failure.ignore=true clean package"""
                     }
                 }
             }
-        }
 
-        stage('Deployment with Docker Compose') {
-            steps {
-                sh 'docker-compose up -d'
+            stage('Mvn-Test') {
+               steps {
+                   script{
+
+                                                      sh """mvn test"""
+                                                               }
+
+                                                             }
+                                                   }
+
+            stage('mvn-SONARQUBE') {
+                 steps {
+                    withSonarQubeEnv('sonarQube'){
+                        sh """mvn sonar:sonar"""
+                    }
+
+                 }
             }
-        }
 
-        stage('Verification Status') {
-            steps {
-                sh 'docker-compose ps'
-            }
-        }
-    }
+                                 stage('Upload Jar To NEXUS') {
 
-    post {
-        success {
-            jacoco()
-            junit '**/target/surefire-reports/TEST-*.xml'
-            archiveArtifacts 'target/*.jar'
-        }
+                                                steps {
+                                                       script{
+
+                                                            pom = readMavenPom file: "pom.xml";
+                                                           filesByGlob = findFiles(glob:"target/*.${pom.packaging}");
+                                                           echo "${filesByGlob[0].name} ${filesByGlob[0].path} ${filesByGlob[0].directory} ${filesByGlob[0].length}";
+                                                           artifactPath = filesByGlob[0].path;
+                                                           artifactExists = fileExists artifactPath;
+                                                           if(artifactExists){
+                                                                          echo "*** File: ${artifactPath}, group: ${pom.groupId}, packaging: ${pom.packaging},version: ${pom.version}";
+                                                                            nexusArtifactUploader(
+                                                                                               nexusVersion:NEXUS_VERSION,
+                                                                                               protocol:NEXUS_PROTOCOL,
+                                                                                               nexusUrl:NEXUS_URL,
+                                                                                               groupId: pom.groupId,
+                                                                                               version:pom.version,
+                                                                                               repository:NEXUS_REPOSITORY,
+                                                                                               credentialsId:NEXUS_CREDENTIAL_ID,
+
+                                                                                               artifacts :[
+                                                                                                          [ artifactId: pom.artifactId,
+                                                                                                            classifier: '',
+                                                                                                            file: artifactPath,
+                                                                                                            type: pom.packaging],
+                                                                                                            [artifactId: pom.artifactId,
+                                                                                                             classifier: '',
+                                                                                                             file:"pom.xml",
+                                                                                                             type: "pom"
+                                                                                                             ]
+                                                                                                           ]
+                                                                                                           );
+                                                                                                       }
+                                                                                                       else{
+                                                                                                       error "*** File: ${artifactPath},inexistant ";
+                                                                                                       }
+
+                                                          }
+                                                   }
+
+                                       }
+
+
+                                stage('Build Docker image') {
+                                    steps {
+                                     sh 'docker build -t nadagharbi/projet-devops .'
+                                 }
+                                }
+
+                                 stage('Push image to hub'){
+                                    steps{
+                                        withCredentials([string(credentialsId:"dockerhub-pwd", variable: "dockerhubpwd")]){
+                                            sh 'docker login -u wajdiihassyaoui -p ${dockerhubpwd}'
+                                        }
+                                        sh 'docker push wajdiihassyaoui/projet-devops'
+                                    }
+                                 }
+
+                                  stage('docker-compose'){
+                                     steps {
+                                        sh 'docker-compose up'
+                                     }
+                                  }
+
+
+
+
+
+
     }
 }
