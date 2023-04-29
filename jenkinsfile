@@ -1,211 +1,111 @@
 pipeline {
-
     agent any
 
- 
-
     tools {
-
-        // Install the Maven version configured as "M3" and add it to the path.
-
+        // Install the Maven version configured as "M2_HOME" and add it to the path.
         maven "M2_HOME"
-
     }
 
     environment {
-
-                        NEXUS_URL = 'http://192.168.43.254:8081'
-
-                        NEXUS_REPOSITORY_ID = 'deploymentRepo'
-
-                        NEXUS_REPOSITORY_URL = 'http://192.168.43.254:8081/repository/maven-releases'
-
-            }
+        NEXUS_URL = 'http://192.168.43.254:8081'
+        NEXUS_REPOSITORY_ID = 'deploymentRepo'
+        NEXUS_REPOSITORY_URL = 'http://192.168.43.254:8081/repository/maven-releases'
+    }
 
     stages {
-
-        stage('CheckOut') {
-
+        stage('Checkout') {
             steps {
-
-                checkout scmGit(branches: [[name: '*/master']], extensions: [], userRemoteConfigs: [[url: 'https://github.com/wajdi-HUB/testDevopsRepo.git/']])            
-
- 
-
+                checkout([$class: 'GitSCM', branches: [[name: '*/master']], userRemoteConfigs: [[url: 'https://github.com/wajdi-HUB/testDevopsRepo.git']]])
             }
-
         }
 
-        stage('MAVEN VERSION') {
-
+        stage('Maven Version') {
             steps {
-
-                sh """mvn --version"""
-
+                sh 'mvn --version'
             }
-
         }
 
-        stage('MVN COMPILE') {
-
+        stage('Maven Compile') {
             steps {
-
-                                                echo "building ..."
-
-                                                sh 'mvn clean compile'
-
+                sh 'mvn clean compile'
             }
-
         }
 
-        stage('MVN CLEAN INSTALL') {
-
+        stage('Maven Clean Install') {
             steps {
-
-                // Checkout your source code from version control system
-
-                // ...
-
-                echo 'Build..';
-
-                // Invoke Maven build
-
                 sh 'mvn clean install'
-
-                                    }
-
-                        }
-
-        stage('BUILD') {
-
-            steps {
-
-                sh "mvn clean package"
-
             }
-
         }
 
- 
+        stage('Build') {
+            steps {
+                sh 'mvn clean package'
+            }
+        }
 
-                        stage("CLEAN VERIFY") {
-
-                                    steps {
-
-                                                echo 'testing ..';
-
+        stage('Clean Verify') {
+            steps {
                 sh 'mvn clean verify'
+            }
+        }
 
-                                    }
-
-                        }      
-
-                        stage("TEST JUNIT") {
-
-                                    steps {
-
-                                                echo 'testing ..';
-
+        stage('Test JUnit') {
+            steps {
                 sh 'mvn test'
-
-                                    }
-
-                        }      
-
-        stage('ANALYSE SONARQUBE') {
-
-            steps {
-
-                                                withSonarQubeEnv('SQ') {
-
-                                                            sh "mvn sonar:sonar -Dsonar.login=admin -D sonar.password=sonar"
-
-                                                }
-
             }
-
         }
 
-                        stage("Publish to Nexus Repository Manager") {
-
-                                    steps {
-
-                                                echo 'Deploy..';
-
-                                                sh "mvn deploy -DaltDeploymentRepository=${NEXUS_REPOSITORY_ID}::default::${NEXUS_REPOSITORY_URL} -s /usr/share/maven/conf/settings.xml"
-
-                                    }
-
-                        }
-
-        stage('build image') {
-
+        stage('Analyze SonarQube') {
             steps {
+                withSonarQubeEnv('SQ') {
+                    sh 'mvn sonar:sonar -Dsonar.login=admin -Dsonar.password=sonar'
+                }
+            }
+        }
 
-                script{
+        stage('Publish to Nexus Repository Manager') {
+            steps {
+                sh "mvn deploy -DaltDeploymentRepository=${NEXUS_REPOSITORY_ID}::default::${NEXUS_REPOSITORY_URL} -s /usr/share/maven/conf/settings.xml"
+            }
+        }
 
+        stage('Build Image') {
+            steps {
+                script {
                     sh 'docker build -t wajdiihassyaoui/tpachatproject .'
-
                 }
-
             }
-
         }
 
-        stage('Push image to Hub'){
-
-            steps{
-
-                script{
-
+        stage('Push Image to Hub') {
+            steps {
+                script {
                     withCredentials([string(credentialsId: 'dockerhub-pwd', variable: 'dockerhubpwd')]) {
-
                         sh 'docker login -u wajdiihassyaoui -p ${dockerhubpwd}'
-
-                        sh ' docker push wajdiihassyaoui/tpachatproject'            
-
+                        sh 'docker push wajdiihassyaoui/tpachatproject'
                     }
-
                 }
-
             }
-
         }
 
-        stage('Déploiement avec Docker Compose') {
-
-             steps {
-
-                sh'docker-compose up -d'
-
+        stage('Deployment with Docker Compose') {
+            steps {
+                sh 'docker-compose up -d'
             }
-
         }
 
         stage('Verification Status') {
-
             steps {
-
-                sh' docker-compose ps '
-
+                sh 'docker-compose ps'
             }
-
         }
-
     }
 
     post {
-
         success {
-
             jacoco()
-
             junit '**/target/surefire-reports/TEST-*.xml'
-
             archiveArtifacts 'target/*.jar'
-
         }
-
-    }   
-
+    }
 }
