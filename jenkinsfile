@@ -55,7 +55,19 @@ pipeline {
             }
         }
 
-       
+       stage('ANALYSE SONARQUBE') {
+
+            steps {
+
+                             withSonarQubeEnv('SQ') {
+
+                            sh "mvn sonar:sonar -Dsonar.login=admin -Dsonar.password=sonar"
+
+                                                }
+
+            }
+
+        }
 
         stage('Publish to Nexus Repository Manager') {
             steps {
