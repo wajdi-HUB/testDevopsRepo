@@ -108,7 +108,7 @@ pipeline {
 
                                 stage('Build Docker image') {
                                     steps {
-                                     sh 'docker build -t nadagharbi/projet-devops .'
+                                     sh 'docker build -t wajdiihassyaoui/projet-devops .'
                                  }
                                 }
 
