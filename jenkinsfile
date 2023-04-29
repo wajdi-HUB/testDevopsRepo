@@ -56,7 +56,11 @@ pipeline {
             stage('mvn-SONARQUBE') {
                  steps {
                     withSonarQubeEnv('sonarQube'){
-                        sh """mvn sonar:sonar"""
+                        
+                      ssh """ mvn sonar:sonar \
+  -Dsonar.projectKey=wajdiihassyaoui \
+  -Dsonar.host.url=http://192.168.43.254:9000 \
+  -Dsonar.login=2ca328d5c8f02de1409df7879b041e6f7da40a84"""
                     }
 
                  }
