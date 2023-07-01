@@ -1,140 +1,62 @@
 pipeline {
-
     agent any
-    tools {
-    maven "M2_HOME"
-          }
-
-    environment {
-            NEXUS_VERSION = "nexus3"
-            NEXUS_PROTOCOL = "http"
-            NEXUS_URL = "192.168.43.254:8081"
-            NEXUS_REPOSITORY = "ProjetDevopsNexusRepo"
-            NEXUS_CREDENTIAL_ID = "NEXUS_CRED"
-                 }
-
+   
+ 
     stages {
 
-            stage('Clone') {
-                steps {
-                    git branch: 'master',
-                    credentialsId: 'github',
-                    url: 'https://github.com/wajdi-HUB/testDevopsRepo.git'
+        stage("clone repo") {
+            steps {
+                script {
+                    // Let's clone the source
+                    git 'https://github.com/wajdi-HUB/testDevopsRepo.git';
                 }
             }
+        }
+       
 
-           stage('MVN-CLEAN') {
-                steps {
-                    sh """mvn clean install"""
-                }
-           }
-
-            stage('MVN-COMPILE') {
-                 steps {
-                    sh """mvn compile"""
-                 }
-            }
-
-            stage('Mvn-Build') {
-                steps {
-                    script{
-                        sh """mvn -Dmaven.test.failure.ignore=true clean package"""
-                    }
+        stage("mvn build") {
+            steps {
+                script {
+                   
+                    sh "mvn package -DskipTests=true"
                 }
             }
+        }
 
-            stage('Mvn-Test') {
-               steps {
-                   script{
-
-                                                      sh """mvn test"""
-                                                               }
-
-                                                             }
-                                                   }
-
-            stage('mvn-SONARQUBE') {
-                 steps {
-                    withSonarQubeEnv('sonarQube'){
-                        
-                      ssh """ mvn sonar:sonar \
-  -Dsonar.projectKey=wajdiihassyaoui \
-  -Dsonar.host.url=http://192.168.43.254:9000 \
-  -Dsonar.login=2ca328d5c8f02de1409df7879b041e6f7da40a84"""
-                    }
-
-                 }
+        stage("mvn clean") {
+            steps {
+                script {
+                   
+                    sh "mvn clean"
+                }
             }
+        }
 
-                                 stage('Upload Jar To NEXUS') {
+        stage("Test stage") {
+            steps {
+                script {
+                   
+                   sh "mvn test"
+                }
+            }
+        }
 
-                                                steps {
-                                                       script{
-
-                                                            pom = readMavenPom file: "pom.xml";
-                                                           filesByGlob = findFiles(glob:"target/*.${pom.packaging}");
-                                                           echo "${filesByGlob[0].name} ${filesByGlob[0].path} ${filesByGlob[0].directory} ${filesByGlob[0].length}";
-                                                           artifactPath = filesByGlob[0].path;
-                                                           artifactExists = fileExists artifactPath;
-                                                           if(artifactExists){
-                                                                          echo "*** File: ${artifactPath}, group: ${pom.groupId}, packaging: ${pom.packaging},version: ${pom.version}";
-                                                                            nexusArtifactUploader(
-                                                                                               nexusVersion:NEXUS_VERSION,
-                                                                                               protocol:NEXUS_PROTOCOL,
-                                                                                               nexusUrl:NEXUS_URL,
-                                                                                               groupId: pom.groupId,
-                                                                                               version:pom.version,
-                                                                                               repository:NEXUS_REPOSITORY,
-                                                                                               credentialsId:NEXUS_CREDENTIAL_ID,
-
-                                                                                               artifacts :[
-                                                                                                          [ artifactId: pom.artifactId,
-                                                                                                            classifier: '',
-                                                                                                            file: artifactPath,
-                                                                                                            type: pom.packaging],
-                                                                                                            [artifactId: pom.artifactId,
-                                                                                                             classifier: '',
-                                                                                                             file:"pom.xml",
-                                                                                                             type: "pom"
-                                                                                                             ]
-                                                                                                           ]
-                                                                                                           );
-                                                                                                       }
-                                                                                                       else{
-                                                                                                       error "*** File: ${artifactPath},inexistant ";
-                                                                                                       }
-
-                                                          }
-                                                   }
-
-                                       }
-
-
-                                stage('Build Docker image') {
-                                    steps {
-                                     sh 'docker build -t wajdiihassyaoui/projet-devops .'
-                                 }
-                                }
-
-                                 stage('Push image to hub'){
-                                    steps{
-                                        withCredentials([string(credentialsId:"dockerhub-pwd", variable: "dockerhubpwd")]){
-                                            sh 'docker login -u wajdiihassyaoui -p ${dockerhubpwd}'
-                                        }
-                                        sh 'docker push wajdiihassyaoui/projet-devops'
-                                    }
-                                 }
-
-                                  stage('docker-compose'){
-                                     steps {
-                                        sh 'docker-compose up'
-                                     }
-                                  }
-
-
-
-
-
-
+     stage("Sonar metrics") {
+            steps {
+                script {
+                    // this step enable to execute the SonarQube analysis via a regular Maven goal
+                   sh "mvn sonar:sonar "
+                     }
+                }
+            }
+           
+        stage("Deployment stage") {
+            steps {
+                script {
+                    // this stage deploys the artifact into Nexus repository
+                   sh 'mvn clean package deploy:deploy-file -DgroupId=tn.esprit -DartifactId=ExamThourayaS2 -Dversion=1.0 -DgeneratePom=true -Dpackaging=jar  -DrepositoryId=deploymentRepo -Durl=http://172.20.10.7:8081/repository/maven-releases/ -Dfile=target/ExamThourayaS2-0.0.1-SNAPSHOT';
+                }
+            }
+        }
     }
 }
