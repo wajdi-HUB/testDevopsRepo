@@ -51,14 +51,15 @@ pipeline {
             }
         }
 
-        stage('Building docker image') {
-            steps {
-                script {
-                    // this step builds the Docker image
-                    sh "docker build -t ${registry}/your-image:${env.BUILD_NUMBER} ."
+         stage('Building docker image') {
+          steps{
+               script {
+                 // this step build docker image
+                 docker.build registry + ":$BUILD_NUMBER"
                 }
-            }
+         }    
         }
+
 
     }
 
