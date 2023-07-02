@@ -1,35 +1,28 @@
 pipeline {
     agent any
-   
- 
-    stages {
 
-        stage("clone repo") {
+    stages {
+        stage("Clone repo") {
             steps {
                 script {
                     // Let's clone the source
-                    git 'https://github.com/wajdi-HUB/testDevopsRepo.git';
+                    git 'https://github.com/wajdi-HUB/testDevopsRepo.git'
                 }
             }
         }
-       
 
-        stage("mvn build") {
+        stage("Maven build") {
             steps {
                 script {
-                   
                     sh "mvn package -DskipTests=true"
                 }
             }
         }
 
-       
-
         stage("Test stage") {
             steps {
                 script {
-                   
-                   sh "mvn test"
+                    sh "mvn test"
                 }
             }
         }
@@ -37,35 +30,35 @@ pipeline {
         stage("Sonar metrics") {
             steps {
                 script {
-                    // this step enable to execute the SonarQube analysis via a regular Maven goal
-                   sh "mvn sonar:sonar "
-                     }
+                    sh "mvn sonar:sonar"
                 }
-        }
-    
-        stage("Deployment stage") {
-            steps {
-                script {
-                    // this stage deploys the artifact into Nexus repository
-                   sh 'mvn clean package deploy:deploy-file -DgroupId=tn.esprit -DartifactId=ExamThourayaS2 -Dversion=1.0 -DgeneratePom=true -Dpackaging=jar  -DrepositoryId=deploymentRepo -Durl=http://192.168.43.225:8081/repository/maven-releases/ -Dfile=target/ExamThourayaS2-0.0.1-SNAPSHOT.jar';              }
             }
         }
 
-         stage('Build image') {
+        stage("Deployment stage") {
             steps {
-        		 sh "docker build -t wajdiihassyaoui/image ."
-        	}
-        } 
+                script {
+                    sh 'mvn clean package deploy:deploy-file -DgroupId=tn.esprit -DartifactId=ExamThourayaS2 -Dversion=1.0 -DgeneratePom=true -Dpackaging=jar -DrepositoryId=deploymentRepo -Durl=http://192.168.43.225:8081/repository/maven-releases/ -Dfile=target/ExamThourayaS2-0.0.1-SNAPSHOT.jar'
+                }
+            }
+        }
+
+        stage('Build image') {
+            steps {
+                script {
+                    sh "docker build -t wajdiihassyaoui/image ."
+                }
+            }
+        }
 
         stage('Push image') {
-  			steps {
-  			    withDockerRegistry([ credentialsId: "dockerhub", url: "" ]) {
-					sh "docker push wajdiihassyaoui/image"
-				}
-			}
-        }
-
-
-}
-
+            steps {
+                script {
+                    withDockerRegistry([credentialsId: "dockerhub", url: ""]) {
+                        sh "docker push wajdiihassyaoui/image"
+                    }
+                }
+            }
+        }
+    }
 }
