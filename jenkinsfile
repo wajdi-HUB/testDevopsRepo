@@ -23,14 +23,7 @@ pipeline {
             }
         }
 
-        stage("mvn clean") {
-            steps {
-                script {
-                   
-                    sh "mvn clean"
-                }
-            }
-        }
+       
 
         stage("Test stage") {
             steps {
@@ -54,9 +47,22 @@ pipeline {
             steps {
                 script {
                     // this stage deploys the artifact into Nexus repository
-                  sh "mvn deploy"
-                }
+                   sh 'mvn clean package deploy:deploy-file -DgroupId=tn.esprit -DartifactId=ExamThourayaS2 -Dversion=1.0 -DgeneratePom=true -Dpackaging=jar  -DrepositoryId=deploymentRepo -Durl=http://192.168.43.225:8081/repository/maven-releases/ -Dfile=target/ExamThourayaS2-0.0.1-SNAPSHOT.jar';              }
             }
         }
+
+        stage('Building docker image') {
+          steps{
+               script {
+                 // this step build docker image
+                 docker.build registry + ":$BUILD_NUMBER"
+                }
+         }    
+        }
+
     }
+
+
+   
+
 }
