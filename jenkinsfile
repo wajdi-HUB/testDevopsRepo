@@ -64,7 +64,8 @@ pipeline {
     steps {
         script {
             sh """
-                chmod +x /root/MysqlAndSpring/docker-compose.yml
+                sudo chown jenkins /root/MysqlAndSpring/docker-compose.yml
+                sudo chmod +rx /root/MysqlAndSpring/docker-compose.yml
                 sudo docker-compose -f /root/MysqlAndSpring/docker-compose.yml up -d
             """
             }
