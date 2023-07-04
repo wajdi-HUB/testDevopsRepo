@@ -63,7 +63,7 @@ pipeline {
       stage('Launch Docker Compose kol 3am wenty 7aya b5ir sirine') {
     steps {
         script {
-            sh "docker-compose up -d"
+            sh "docker-compose -f /home/user/MysqlAndSpring/docker-compose.yml up -d"
             }
         }
     }
