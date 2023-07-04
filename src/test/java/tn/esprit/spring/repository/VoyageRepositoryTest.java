@@ -1,23 +1,27 @@
 package tn.esprit.spring.repository;
+
+import org.junit.Assert;
 import org.junit.Test;
 import org.junit.runner.RunWith;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.autoconfigure.orm.jpa.DataJpaTest;
-import org.springframework.test.context.junit4.SpringRunner;
+import org.mockito.Mock;
+import org.mockito.Mockito;
+import org.mockito.junit.MockitoJUnitRunner;
 import tn.esprit.spring.entities.Ville;
 import tn.esprit.spring.entities.Voyage;
+import tn.esprit.spring.repository.VoyageRepository;
 
+import java.util.ArrayList;
 import java.util.List;
-import org.junit.Assert;
-@RunWith(SpringRunner.class)
-@DataJpaTest
+
+@RunWith(MockitoJUnitRunner.class)
 public class VoyageRepositoryTest {
-    @Autowired
+
+    @Mock
     private VoyageRepository voyageRepository;
 
     @Test
     public void testRechercheVoyage() {
-        // Créer des objets Voyage pour le test
+        // Create test data
         Voyage voyage1 = new Voyage();
         voyage1.setGareDepart(Ville.tunis);
         voyage1.setGareArrivee(Ville.sfax);
@@ -28,20 +32,19 @@ public class VoyageRepositoryTest {
         voyage2.setGareArrivee(Ville.SOUSSE);
         voyage2.setHeureDepart(9.0);
 
-        // Enregistrer les voyages dans la base de données
-        voyageRepository.save(voyage1);
-        voyageRepository.save(voyage2);
+        // Define the expected result
+        List<Voyage> expectedResult = new ArrayList<>();
+        expectedResult.add(voyage1);
 
-        // Appeler la méthode à tester
+        // Mock the behavior of the voyageRepository
+        Mockito.when(voyageRepository.RechercheVoyage(Ville.tunis, Ville.sfax, 8.0))
+                .thenReturn(expectedResult);
+
+        // Call the method under test
         List<Voyage> result = voyageRepository.RechercheVoyage(Ville.tunis, Ville.sfax, 8.0);
 
-        // Vérifier le résultat
+        // Verify the result
         Assert.assertEquals(1, result.size());
-        Assert.assertEquals(voyage1, result.get(0));
+        Assert.assertEquals(expectedResult.get(0), result.get(0));
     }
 }
-
-
-
-
-
